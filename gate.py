@@ -27,7 +27,7 @@ def n_exact(V_GS):
     for eta_F by root finding. Returns (n, eta_F)."""
     Vg0 = V_GS - V_OFF
     g = lambda eta: sheet_exact(eta) - U * (Vg0 - PHIT * eta)    # zero at the solution
-    eta = brentq(g, -200.0, Vg0 / PHIT)                          # g < 0 at -200, g > 0 where the gate line hits zero
+    eta = brentq(g, -200.0, Vg0 / PHIT + 1e-9)                   # g < 0 at -200; g > 0 just past where the gate line hits zero                          # g < 0 at -200, g > 0 where the gate line hits zero
     return sheet_exact(eta), eta
 
 
