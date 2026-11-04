@@ -1,0 +1,24 @@
+# Nazir et al., IEEE TED 72(9) 2025, Fig. 6(a): Device 1 (long-channel PolFET [11]), V_DS = 10 V, W = 150 um; measured = CW data of [11] (symbols)
+# read from the PDF's vector drawing (exact plotted positions); symbols resting on the zero line read as 0.54 mA, so the plot resolves about +-0.5 mA
+VGS_V,ID_mA
+-3.0002,0.5384
+-2.6992,0.5384
+-2.4007,0.5384
+-2.0997,0.5384
+-1.8012,0.5384
+-1.5002,0.5384
+-1.1992,1.2994
+-0.9007,6.3220
+-0.5996,15.3018
+-0.3011,26.6407
+-0.0001,39.0450
+0.3009,51.8298
+0.5994,64.4628
+0.9004,76.7149
+1.1989,88.8909
+1.4999,100.6103
+1.8009,112.0256
+2.0994,122.9080
+2.4004,133.1815
+2.6989,142.8462
+2.9999,151.9020
