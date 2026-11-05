@@ -1,7 +1,7 @@
 """
 fit.py - compact model step 5b: fit the Device 1 parameters to the measured points of the paper's Fig. 6(a) and Fig. 7(a).
 The paper calls these "fitting parameters" and gives no values for Device 1 [P, below Eq. (17)].
-Only the three parameters the data can pin down are fitted (decided 2026-11-05, option A).
+Only the parameters the data can pin down are fitted (decided 2026-11-05: option A, then delta added).
 Saves the result to params_device1.json, so later steps use the same numbers.
 """
 import json
@@ -28,7 +28,8 @@ out7 = out7[out7[:, 1] > 0]                                  # V_DS = 0 gives I_
 # ---- fitted: name in ids()/id_ext(), start, lower and upper bound, typical size, unit, meaning
 FREE = [("u0",    U0_ACC,         100e-4, 3000e-4, 0.05, "m^2/Vs", "U0, access mobility [T Eq. 5.2]"),
         ("vsat0", cur.VSAT0,      2e4,    1e6,     1e5,  "m/s",    "V_SAT0 [P]"),
-        ("th2",   cur.THETA_SAT2, 0.01,   2.0,     0.3,  "-",      "theta_SAT2 [P]")]
+        ("th2",   cur.THETA_SAT2, 0.01,   2.0,     0.3,  "-",      "theta_SAT2 [P]"),
+        ("delta", cur.DELTA_DS,   1.0,    10.0,    1.0,  "-",      "delta in V_DS,eff [P, no value]")]
 NAMES = [f[0] for f in FREE]
 
 # ---- fixed: the data cannot pin these down (seven-parameter test, Step 5b, 2026-11-04)
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     print("fitted: rms I_D = {:.2f} mA, output = {:.2f} mA, g_M = {:.2f} mS".format(*rms(sol.x)),
           f"  ({time.time() - t0:.0f} s)")
 
-    sol2 = run_fit([0.03, 3e5, 0.1])                  # a very different start, to check the answer does not change
+    sol2 = run_fit([0.03, 3e5, 0.1, 6.0])            # a very different start, to check the answer does not change
 
     print()
     print(f"{'parameter':36s}{'start':>11s}{'fitted':>12s}{'other start':>14s}  unit")
@@ -99,7 +100,7 @@ if __name__ == "__main__":
         "source": "fit.py, Step 5b: least squares to the measured points of Nazir et al. 2025 Fig. 6(a) and Fig. 7(a)",
         "fitted [CALIBRATE]": dict(zip(NAMES, map(float, sol.x))),
         "fixed": {**FIXED, "v_off": cur.V_OFF_TCADP, "mu_lf": cur.MU_LF, "th1": cur.THETA_SAT1, "n_max": cur.N_MAX,
-                  "mu_b": cur.MU_B, "delta": cur.DELTA_DS, "n_acc_cm2": N_ACC, "l_sg": L_SG, "l_gd": L_GD},
+                  "mu_b": cur.MU_B, "n_acc_cm2": N_ACC, "l_sg": L_SG, "l_gd": L_GD},
         "rms": dict(zip(["fig6a_ID_mA", "fig7a_ID_mA", "fig6a_gM_mS"], map(float, rms(sol.x)))),
     }
     with open("params_device1.json", "w") as f:

@@ -40,7 +40,7 @@ def id_ext(V_GS, V_DS, u0=U0_ACC, vsat_acc=VSAT_ACC, beta=BETA_ACC, **kw):
         Rs = r_access(I, L_SG, u0, vsat_acc, beta)
         Rd = r_access(I, L_GD, u0, vsat_acc, beta)
         vgs_int = max(V_GS - I * Rs, V_TABLE[0])      # gate-source voltage the channel sees (kept inside the n table)
-        vds_int = V_DS - I * (Rs + Rd)                # drain-source voltage the channel sees
+        vds_int = max(V_DS - I * (Rs + Rd), 0.0)      # drain-source voltage the channel sees (never below 0)
         return I - ids(vgs_int, vds_int, **kw)
 
     I_hi = min(V_DS / R0_sum, I_sat * (1 - 1e-9))     # here the channel sees V_DS <= 0, so f > 0
