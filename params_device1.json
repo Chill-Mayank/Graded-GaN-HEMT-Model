@@ -1,0 +1,28 @@
+{
+  "source": "fit.py, Step 5b: least squares to the measured points of Nazir et al. 2025 Fig. 6(a) and Fig. 7(a)",
+  "fitted [CALIBRATE]": {
+    "u0": 0.062539242010277,
+    "vsat0": 75189.35311961702,
+    "th2": 0.5887692627053698
+  },
+  "fixed": {
+    "vsat_acc": 180000.0,
+    "beta": 2.0,
+    "mu_a": 0.0,
+    "theta_sat": 0.0,
+    "v_off": -1.2603231697230548,
+    "mu_lf": 0.091,
+    "th1": 0.3,
+    "n_max": 5e+16,
+    "mu_b": 0.0,
+    "delta": 2.0,
+    "n_acc_cm2": 11300000000000.0,
+    "l_sg": 5e-07,
+    "l_gd": 3.5e-06
+  },
+  "rms": {
+    "fig6a_ID_mA": 1.0995748729622006,
+    "fig7a_ID_mA": 1.7246940329937788,
+    "fig6a_gM_mS": 1.1204617340845808
+  }
+}
