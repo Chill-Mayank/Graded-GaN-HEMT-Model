@@ -1,10 +1,15 @@
 """
 current.py - compact model step 4: drain current I_DS of Device 1, intrinsic (no access resistance yet).
 Source [P]: Nazir et al., IEEE TED 72(9), 2025, Eqs. (16)-(17) and the mobility and saturation equations below them.
+Channel charge: the simultaneous solution of the paper's two charge equations [P, Sec. II-B: n = N_C F_1/2(eta_F)
+with the n^(2/3) transformation, and the gate line of Eq. (8)], i.e. the paper's own "numerical solution" [P, Fig. 4(a)].
+Numerics: Brent's root finder [R. P. Brent, Algorithms for Minimization without Derivatives, 1973] (scipy brentq,
+in gate.py), tabulated once and joined by a quintic interpolating spline [C. de Boor, A Practical Guide to Splines, 1978]
+(scipy make_interp_spline, k = 5), so n, G_M, G_M2 and G_M3 are continuous.
 """
 from functools import lru_cache
 import numpy as np
-from scipy.interpolate import CubicSpline
+from scipy.interpolate import make_interp_spline
 import device1 as d1
 from gate import Q, PHIT, n_total, n_exact
 
@@ -30,17 +35,21 @@ DELTA_DS = 2.0                  # smoothing exponent in V_DS,eff [ASSUME: the pa
 N_FLOOR = 1.0                   # cm^-2, n_total is clamped here: Eq. (15) turns negative below -2.71 V [DEVIATION]
 
 # ---- which channel charge feeds Eq. (17)
-CHARGE = "exact"                # "exact": root-finding n [DEVIATION, decided 2026-11-04: smooth g_M for the DC fit]
-                                # "compact": closed-form n_total, Eqs. (9), (11), (14), (15) [P]
+CHARGE = "exact"                # "exact": numerical solution of the two charge equations [P, Sec. II-B; Fig. 4(a)]
+                                #   [DEVIATION from Eqs. (9)-(15), decided 2026-11-09: printed Eq. (14) has no real root
+                                #   for V_g0,mid < ~0.8 V (Device 1), and the paper's own Fig. 4(b) and Fig. 6(a) lines
+                                #   follow the numerical solution there, not the printed closed form]
+                                # "compact": closed-form n_total, Eqs. (9), (11), (14), (15) [P], kept for Fig. 4
 V_TABLE = np.arange(-4.5, 4.0 + 1e-9, 0.01)   # V_GS grid for the exact-n table, 10 mV steps
 
 
 @lru_cache(maxsize=8)
 def n_exact_spline(v_off):
-    """Solve the exact n once on the V_TABLE grid, then join the points with a smooth cubic spline of log(n).
+    """Solve the exact n once on the V_TABLE grid, then join the points with a quintic spline of log(n)
+    [de Boor 1978]. Quintic (not cubic) keeps the third derivative continuous, which G_M3 needs.
     lru_cache keeps the result, so the slow root finding runs only once for each V_OFF."""
     logn = np.log([n_exact(v, v_off, d1.U)[0] for v in V_TABLE])
-    return CubicSpline(V_TABLE, logn)
+    return make_interp_spline(V_TABLE, logn, k=5)
 
 
 def n_channel(V_GS, v_off=V_OFF_TCADP, charge=CHARGE):
@@ -93,6 +102,12 @@ if __name__ == "__main__":
     for V in [-2.995, -1.2345, -0.5055, 0.0005, 2.7777]:
         direct = n_exact(V, V_OFF_TCADP, d1.U)[0]
         print(f"  V_GS = {V:+8.4f} V   n = {direct:.5e} cm^-2   table error = {n_channel(V) / direct - 1:+.1e}")
+
+    print()
+    print("Smoothness check: jump of d3(log n)/dV3 across table knots (0 for a curve with a continuous 3rd derivative)")
+    d3 = n_exact_spline(float(V_OFF_TCADP)).derivative(3)
+    for V in [-1.0, -0.5, 0.0, 1.0]:
+        print(f"  V_GS = {V:+5.2f} V   relative jump = {abs(d3(V + 1e-7) - d3(V - 1e-7)) / abs(d3(V)):.1e}")
 
     paper = np.loadtxt("paper_data/fig6a_measured_ID.csv", delimiter=",", skiprows=3)
     print()

@@ -1,7 +1,8 @@
 """
 fit.py - compact model step 5b: fit the Device 1 parameters to the measured points of the paper's Fig. 6(a) and Fig. 7(a).
 The paper calls these "fitting parameters" and gives no values for Device 1 [P, below Eq. (17)].
-Only the parameters the data can pin down are fitted (decided 2026-11-05: option A, then delta added).
+Only the parameters the data can pin down are fitted (decided 2026-11-05: option A, then delta added;
+2026-11-09: beta added, because the data determine it once V_SAT,acc is fixed at the TCAD value).
 Saves the result to params_device1.json, so later steps use the same numbers.
 """
 import json
@@ -29,12 +30,12 @@ out7 = out7[out7[:, 1] > 0]                                  # V_DS = 0 gives I_
 FREE = [("u0",    U0_ACC,         100e-4, 3000e-4, 0.05, "m^2/Vs", "U0, access mobility [T Eq. 5.2]"),
         ("vsat0", cur.VSAT0,      2e4,    1e6,     1e5,  "m/s",    "V_SAT0 [P]"),
         ("th2",   cur.THETA_SAT2, 0.01,   2.0,     0.3,  "-",      "theta_SAT2 [P]"),
-        ("delta", cur.DELTA_DS,   1.0,    10.0,    1.0,  "-",      "delta in V_DS,eff [P, no value]")]
+        ("delta", cur.DELTA_DS,   1.0,    10.0,    1.0,  "-",      "delta in V_DS,eff [P, no value]"),
+        ("beta",  2.0,            0.5,    20.0,    1.0,  "-",      "beta in access R [T Eq. 5.1, no value]")]
 NAMES = [f[0] for f in FREE]
 
-# ---- fixed: the data cannot pin these down (seven-parameter test, Step 5b, 2026-11-04)
+# ---- fixed: V_SAT,acc from our TCAD; mu_a and theta_sat went to 0 in the seven-parameter test (Step 5b, 2026-11-04)
 FIXED = {"vsat_acc": 1.8e5,     # m/s, access saturation velocity [TCAD, GaN.par saturation velocity]
-         "beta": 2.0,           # access-resistance exponent [ASSUME]
          "mu_a": 0.0,           # m/V, the seven-parameter fit sent it to 0
          "theta_sat": 0.0}      # 1/V, the seven-parameter fit sent it to 0
 W_ID, W_GM = 1.0, 2.0           # residual weights: per mA of I_D and per mS of g_M [ASSUME: g_M counts double]
@@ -84,7 +85,7 @@ if __name__ == "__main__":
     print("fitted: rms I_D = {:.2f} mA, output = {:.2f} mA, g_M = {:.2f} mS".format(*rms(sol.x)),
           f"  ({time.time() - t0:.0f} s)")
 
-    sol2 = run_fit([0.03, 3e5, 0.1, 6.0])            # a very different start, to check the answer does not change
+    sol2 = run_fit([0.03, 3e5, 0.1, 6.0, 4.0])       # a very different start, to check the answer does not change
 
     print()
     print(f"{'parameter':36s}{'start':>11s}{'fitted':>12s}{'other start':>14s}  unit")
