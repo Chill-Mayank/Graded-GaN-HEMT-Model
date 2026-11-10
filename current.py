@@ -1,5 +1,6 @@
 """
 current.py - compact model step 4: drain current I_DS of Device 1, intrinsic (no access resistance yet).
+Step 7a: ids() split into bias_state() + ids(), so the terminal charges reuse E_F and V_DS,eff; I_DS is unchanged.
 Source [P]: Nazir et al., IEEE TED 72(9), 2025, Eqs. (16)-(17) and the mobility and saturation equations below them.
 Channel charge: the simultaneous solution of the paper's two charge equations [P, Sec. II-B: n = N_C F_1/2(eta_F)
 with the n^(2/3) transformation, and the gate line of Eq. (8)], i.e. the paper's own "numerical solution" [P, Fig. 4(a)].
@@ -59,12 +60,14 @@ def n_channel(V_GS, v_off=V_OFF_TCADP, charge=CHARGE):
     return np.maximum(n_total(V_GS, v_off=v_off, u=d1.U), N_FLOOR)
 
 
-def ids(V_GS, V_DS, v_off=V_OFF_TCADP, printed=False, charge=CHARGE, mu_lf=MU_LF, mu_a=MU_A, mu_b=MU_B,
-        theta_sat=THETA_SAT, vsat0=VSAT0, th1=THETA_SAT1, th2=THETA_SAT2, n_max=N_MAX, delta=DELTA_DS):
-    """Intrinsic drain current in A [P, Eq. (17)]:
-    I_DS = (W/L) mu_eff C_g'' (V_g0 - V_m + phi_t) V_DS,eff
+def bias_state(V_GS, V_DS, v_off=V_OFF_TCADP, printed=False, charge=CHARGE, mu_lf=MU_LF, mu_a=MU_A, mu_b=MU_B,
+               theta_sat=THETA_SAT, vsat0=VSAT0, th1=THETA_SAT1, th2=THETA_SAT2, n_max=N_MAX, delta=DELTA_DS):
+    """Every intermediate quantity of Eq. (17) at one intrinsic bias, as a dict:
+    Vg0, Vq (= q n / C_g''), EF, Vdsat, Vdeff, Vm in V; n in cm^-2; mu_eff in m^2/Vs; I in A.
     printed=True  : V_DSAT uses V_g0, exactly as printed (breaks below V_OFF, where V_g0 < 0)
-    printed=False : V_DSAT uses q n / C_g'' instead of V_g0 [DEVIATION, decided 2026-11-04]"""
+    printed=False : V_DSAT uses q n / C_g'' instead of V_g0 [DEVIATION, decided 2026-11-04]
+    The channel potentials of Sec. II-C are V_ch,s = E_F and V_ch,d = E_F + V_DS,eff: then
+    V_m = (V_ch,s + V_ch,d)/2 is the same V_m as in Eq. (17) [P, both define V_m] (used by terminal_charges.py)."""
     Vg0 = V_GS - v_off
     n = n_channel(V_GS, v_off, charge)                            # cm^-2
     Vq = n / d1.U                                                 # V, q n / C_g'': channel charge as a voltage
@@ -85,7 +88,15 @@ def ids(V_GS, V_DS, v_off=V_OFF_TCADP, printed=False, charge=CHARGE, mu_lf=MU_LF
     Ey = (Vg0 - Vm) / T_EFF                                       # V/m, vertical field  [P]
     mu = mu_lf / (1 + mu_a * Ey + mu_b * Ey**2)                   # m^2/Vs  [P]
     mu_eff = mu / np.sqrt(1 + (theta_sat * Vdeff) ** 2)           # m^2/Vs  [P]
-    return W / L * mu_eff * CG * (Vg0 - Vm + PHIT) * Vdeff        # A  [P, Eq. (17)]
+    I = W / L * mu_eff * CG * (Vg0 - Vm + PHIT) * Vdeff           # A  [P, Eq. (17)]
+    return {"Vg0": Vg0, "n": n, "Vq": Vq, "EF": EF, "Vdsat": Vdsat, "Vdeff": Vdeff, "Vm": Vm, "mu_eff": mu_eff, "I": I}
+
+
+def ids(V_GS, V_DS, *args, **kw):
+    """Intrinsic drain current in A [P, Eq. (17)]:
+    I_DS = (W/L) mu_eff C_g'' (V_g0 - V_m + phi_t) V_DS,eff
+    Takes the same arguments, in the same order, as before Step 7a (v_off, printed, charge, mu_lf, ...)."""
+    return bias_state(V_GS, V_DS, *args, **kw)["I"]
 
 
 def i_diffusion(V_GS, v_off=V_OFF_TCADP, charge=CHARGE, mu_lf=MU_LF):
