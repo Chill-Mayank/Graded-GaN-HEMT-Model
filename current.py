@@ -11,21 +11,21 @@ in gate.py), tabulated once and joined by a quintic interpolating spline [C. de 
 from functools import lru_cache
 import numpy as np
 from scipy.interpolate import make_interp_spline
-import device1 as d1
+from device import dev as d1           # Step 8a: device1 or device2 (GAN_DEVICE)
 from gate import Q, PHIT, n_total, n_exact
 
 # ---- Device 1 geometry [P, Sec. III and Fig. 5(a); the text's "LG = 700 um" is read as 0.7 um, as in Fig. 5(a)]
-W = 150e-6                      # m, total gate width
-L = 0.7e-6                      # m, gate length
+W = d1.W                        # m, total gate width (Device 1: 150 um)
+L = d1.L                        # m, gate length (Device 1: 0.7 um)
 CG = d1.CG * 1e4                # F/m^2, C_g'' (device1.py gives F/cm^2)
 T_EFF = d1.D_ALGAN + d1.T_GRADE # m, d_AlGaN + t, the distance in E_y,eff [P, below Eq. (17)]
 
 # ---- Device 1 V_OFF, both candidates from device1.py; Fig. 6(a) supports -1.26 V (Step 4a)
-V_OFF_PAPER = d1.v_off()                                 # -0.988 V, paper polarization
-V_OFF_TCADP = d1.v_off(vt=d1.v_total() * 3.41 / 3.16)    # -1.260 V, polarization scaled to the TCAD value
+V_OFF_PAPER = d1.v_off() if hasattr(d1, "v_off") else d1.V_OFF   # Device 1: -0.988 V, paper polarization
+V_OFF_TCADP = d1.V_OFF          # Device 1: -1.260 V (TCAD polarization); Device 2: -1.01 V [TCAD n8 + DIBL]
 
 # ---- starting parameters (all fitted in Step 5)
-MU_LF = 910e-4                  # m^2/Vs, low-field mobility at 300 K [R11, Hall]; no self-heating, as in the paper
+MU_LF = d1.MU_LF                # m^2/Vs, low-field mobility (Device 1: 910, Hall [R11]); no self-heating, as in the paper
 MU_A, MU_B = 0.0, 0.0           # m/V, m^2/V^2, vertical-field mobility terms [ASSUME: start at 0]
 THETA_SAT = 0.0                 # 1/V, lateral-field mobility term in mu_eff [ASSUME: start at 0]
 VSAT0 = 1e5                     # m/s       [P, Fig. 7(c) legend, Device 2 values used as a start]

@@ -7,15 +7,16 @@ import numpy as np
 from scipy.optimize import brentq
 from gate import Q
 from current import ids, W, V_TABLE
+from device import dev                 # Step 8a
 
 # ---- access regions of Device 1 [P, Fig. 5(a)]
-L_SG = 0.5e-6                   # m, source-to-gate access length
-L_GD = 3.5e-6                   # m, gate-to-drain access length
-N_ACC = 1.13e13                 # cm^-2, sheet density in the access region [TCAD, run n2 equilibrium cut]
+L_SG = dev.L_SG                 # m, source-to-gate access length (Device 1: 0.5 um)
+L_GD = dev.L_GD                 # m, gate-to-drain access length (Device 1: 3.5 um)
+N_ACC = dev.N_ACC               # cm^-2, access sheet density [TCAD] (Device 1: 1.13e13, run n2)
 Q_ACC = Q * N_ACC * 1e4         # C/m^2, Q_acc = q n_acc
 
 # ---- starting values (fitted in Step 5b); the same values for the source and the drain side (decided 2026-11-04)
-U0_ACC = 910e-4                 # m^2/Vs, access mobility [R11 Hall value as a start]
+U0_ACC = dev.U0_ACC             # m^2/Vs, access mobility start (Device 1: 910, R11 Hall)
 VSAT_ACC = 1e5                  # m/s, access saturation velocity [ASSUME: start]
 BETA_ACC = 2.0                  # exponent [ASSUME: start; not given in [T]]
 

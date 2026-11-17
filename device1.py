@@ -53,3 +53,14 @@ if __name__ == "__main__":
     print(f"V_OFF (paper Eq. (3) polarization) = {v_off():+.3f} V")
     print(f"V_OFF (TCAD polarization)          = {v_off(vt=vt * 3.41 / 3.16):+.3f} V")
     print(f"V_OFF, printed signs of Eq. (8)    = {PHI_B + DEC + vt:+.3f} V   <- impossible for a normally-on device")
+
+# ---- Step 8a (2026-11-17): the names current.py and access.py read through device.py (values unchanged)
+NAME = "Device 1"
+W = 150e-6                    # m, total gate width [P, Sec. III]
+L = 0.7e-6                    # m, gate length [P, Fig. 5(a); the text's "700 um" read as 0.7 um]
+MU_LF = 910e-4                # m^2/Vs, low-field mobility [R11, Hall]
+L_SG = 0.5e-6                 # m, source-to-gate access length [P, Fig. 5(a)]
+L_GD = 3.5e-6                 # m, gate-to-drain access length [P, Fig. 5(a)]
+N_ACC = 1.13e13               # cm^-2, access sheet density [TCAD, run n2 equilibrium cut]
+U0_ACC = 910e-4               # m^2/Vs, access mobility start value [R11 Hall]
+V_OFF = v_off(vt=v_total() * 3.41 / 3.16)   # V, -1.260 V: TCAD polarization (Step 4a)
