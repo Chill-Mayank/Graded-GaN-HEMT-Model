@@ -1,0 +1,26 @@
+LatticeParameters
+{
+  * X and Y vectors define the simulation coordinate system relative to the
+  * crystal orientation system.
+    X = (0 0 -1)
+    Y = (1 0  0)
+}
+
+* Device 2 (paper Fig. 5(b)), 2026-11-10, run n4: copy of sdevice.par (n2, n3) with one change, below.
+* Source/drain are ohmic on n+ GaN, so their tunnelling blocks are removed; the gate keeps its own.
+BarrierTunneling "GateNLM"{
+    mt	= 0.25,    1
+    g	= 1,	1
+}
+
+ThermionicEmission {
+	Formula= 1
+}
+
+* n4: the relaxed layer is the 0.8 um Al0.04GaN "buffer" [Ambacher et al., JAP 85, 3222, 1999];
+* the GaN channel and the layers above are left strained (n2/n3 had "channel" relaxed instead).
+Region= "buffer" {
+  Piezoelectric_polarization {
+        relax = 1
+  }
+}

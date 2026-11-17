@@ -1,0 +1,10 @@
+# Device 2, our Sentaurus TCAD run n8 (= n6 + TDR snapshots), V_DS = 0.05 V: electron sheet density under the gate centre
+# (vertical cut at y = 1.125 um, barrier top to 0.1 um below the channel; n8_ns.py) and the depth of its centroid below the barrier top
+VGS_V,ns_cm-2,centroid_nm
+-1,1.67287e+08,15.2163
+-0.9,1.92083e+09,15.1189
+-0.8,1.64478e+10,15.0229
+-0.7,8.04805e+10,14.9242
+-0.4,8.05766e+11,14.5758
+0,2.24887e+12,14.0096
+0.4,3.92545e+12,13.3628
