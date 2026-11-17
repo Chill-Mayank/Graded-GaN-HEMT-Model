@@ -21,13 +21,18 @@ CG = EPS_R * EPS0 / (2 * D_ALGAN + T_GRADE)      # F/cm^2, C_g'' = eps / (2 d_Al
 U = CG / Q                                        # cm^-2 per V: sheet charge per volt of gate drive
 
 
-def n_exact(V_GS, v_off=V_OFF, u=U):
+def n_exact(V_GS, v_off=V_OFF, u=U, gamma=None):
     """Exact sheet density at gate voltage V_GS: solve
-    (N_C F_1/2(eta_F))^(2/3) = (C_g''/q) (V_g0 - phi_t eta_F),  V_g0 = V_GS - V_OFF   [P, Eq. (8) + n^(2/3) transformation]
-    for eta_F by root finding. Returns (n, eta_F)."""
+    (N_C F_1/2(eta_F))^(2/3) = (C_g''/q) (V_g0 - m phi_t eta_F),  V_g0 = V_GS - V_OFF   [P, Eq. (8) + n^(2/3) transformation]
+    for eta_F by root finding. Returns (n, eta_F).
+    gamma (Step 8c, 2026-11-17): the paper's subthreshold parameter of Eq. (9), n_sub = N_C'' exp(gamma V_g0 / phi_t).
+    Deep below threshold this equation gives n = N_C^(2/3) exp((2/3) V_g0 / (m phi_t)), so m = 2/(3 gamma) makes the
+    numerical solution follow Eq. (9) there [DEVIATION: where gamma enters is ours; the paper defines gamma only in the
+    closed form]. gamma = None or 2/3 gives m = 1: the solution used up to Step 8b, unchanged."""
+    m = 1.0 if gamma is None else 2.0 / (3.0 * gamma)
     Vg0 = V_GS - v_off
-    g = lambda eta: sheet_exact(eta) - u * (Vg0 - PHIT * eta)    # zero at the solution
-    eta = brentq(g, -200.0, Vg0 / PHIT + 1e-9)                   # g < 0 at -200; g > 0 just past where the gate line hits zero
+    g = lambda eta: sheet_exact(eta) - u * (Vg0 - m * PHIT * eta)   # zero at the solution
+    eta = brentq(g, -400.0, Vg0 / (m * PHIT) + 1e-9)                 # g < 0 deep below; g > 0 just past where the gate line hits zero
     return sheet_exact(eta), eta
 
 

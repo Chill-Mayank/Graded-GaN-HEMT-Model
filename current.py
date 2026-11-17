@@ -44,24 +44,28 @@ CHARGE = "exact"                # "exact": numerical solution of the two charge 
 V_TABLE = np.arange(-4.5, 4.0 + 1e-9, 0.01)   # V_GS grid for the exact-n table, 10 mV steps
 
 
+GAMMA_EX = getattr(d1, "GAMMA_EX", None)   # Step 8c: gamma of Eq. (9) in the numerical charge; None = m 1 (Device 1)
+
+
 @lru_cache(maxsize=8)
-def n_exact_spline(v_off):
+def n_exact_spline(v_off, gamma=None):
     """Solve the exact n once on the V_TABLE grid, then join the points with a quintic spline of log(n)
     [de Boor 1978]. Quintic (not cubic) keeps the third derivative continuous, which G_M3 needs.
     lru_cache keeps the result, so the slow root finding runs only once for each V_OFF."""
-    logn = np.log([n_exact(v, v_off, d1.U)[0] for v in V_TABLE])
+    logn = np.log([n_exact(v, v_off, d1.U, gamma)[0] for v in V_TABLE])
     return make_interp_spline(V_TABLE, logn, k=5)
 
 
-def n_channel(V_GS, v_off=V_OFF_TCADP, charge=CHARGE):
+def n_channel(V_GS, v_off=V_OFF_TCADP, charge=CHARGE, gamma=GAMMA_EX):
     """Channel sheet density in cm^-2 that feeds Eq. (17)."""
     if charge == "exact":
-        return np.exp(n_exact_spline(float(v_off))(V_GS))
+        return np.exp(n_exact_spline(float(v_off), None if gamma is None else float(gamma))(V_GS))
     return np.maximum(n_total(V_GS, v_off=v_off, u=d1.U), N_FLOOR)
 
 
 def bias_state(V_GS, V_DS, v_off=V_OFF_TCADP, printed=False, charge=CHARGE, mu_lf=MU_LF, mu_a=MU_A, mu_b=MU_B,
-               theta_sat=THETA_SAT, vsat0=VSAT0, th1=THETA_SAT1, th2=THETA_SAT2, n_max=N_MAX, delta=DELTA_DS):
+               theta_sat=THETA_SAT, vsat0=VSAT0, th1=THETA_SAT1, th2=THETA_SAT2, n_max=N_MAX, delta=DELTA_DS,
+               gamma=GAMMA_EX):
     """Every intermediate quantity of Eq. (17) at one intrinsic bias, as a dict:
     Vg0, Vq (= q n / C_g''), EF, Vdsat, Vdeff, Vm in V; n in cm^-2; mu_eff in m^2/Vs; I in A.
     printed=True  : V_DSAT uses V_g0, exactly as printed (breaks below V_OFF, where V_g0 < 0)
@@ -69,7 +73,7 @@ def bias_state(V_GS, V_DS, v_off=V_OFF_TCADP, printed=False, charge=CHARGE, mu_l
     The channel potentials of Sec. II-C are V_ch,s = E_F and V_ch,d = E_F + V_DS,eff: then
     V_m = (V_ch,s + V_ch,d)/2 is the same V_m as in Eq. (17) [P, both define V_m] (used by terminal_charges.py)."""
     Vg0 = V_GS - v_off
-    n = n_channel(V_GS, v_off, charge)                            # cm^-2
+    n = n_channel(V_GS, v_off, charge, gamma)                     # cm^-2
     Vq = n / d1.U                                                 # V, q n / C_g'': channel charge as a voltage
     EF = Vg0 - Vq                                                 # V, E_F = V_g0 - q n / C_g''  [P]
 

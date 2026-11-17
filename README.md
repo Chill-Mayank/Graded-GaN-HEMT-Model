@@ -170,11 +170,12 @@ Five parameters fitted [CALIBRATE]; everything else fixed from the paper, the ci
 | $U_0$ | 886 cm²/V·s | | $C_g''$ | $\varepsilon/(2d+t)$ | printed form, kept for fidelity |
 | $V_{SAT0}$ | 9.74×10⁴ m/s | | low-field mobility | 1380 cm²/V·s | our TCAD |
 | $\theta_{SAT2}$ | 0.957 | | access density | 3.6×10¹² cm⁻² | our TCAD |
-| $\beta$, $\delta$ | 18.5, 5.0 | | $L_{SG}$, $L_{GD}$ | 0.6 µm | the paper's Fig. 5(b) |
+| $\beta$, $\delta$ | 18.4, 3.4–5.4 | | $L_{SG}$, $L_{GD}$ | 0.6 µm | the paper's Fig. 5(b) |
 
 > [!TIP]
 > With $V_{OFF}$ left free, the fit lands at −1.06 V, 50 mV from the TCAD value, which is a useful independent check of the
 > TCAD route. $\gamma$ is an effective value at $V_{DS}$ = 5 V: the model has no drain-induced barrier lowering, so $\gamma$ absorbs it.
+> $\delta$ is weakly set by data at $V_{DS}$ = 5 V (deep saturation): different starts and machines give 3.4 to 5.4 with the same rms.
 
 ### The charge model against the paper's Fig. 4
 

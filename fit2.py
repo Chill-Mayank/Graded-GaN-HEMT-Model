@@ -1,7 +1,8 @@
 """
-fit2.py - Step 8b: fit Device 2 (short-channel PolFET) to the measured points of the paper's Fig. 6(b).
+fit2.py - Step 8b-c: fit Device 2 (short-channel PolFET) to the measured points of the paper's Fig. 6(b).
 Run:  GAN_DEVICE=2 python3 fit2.py        (device2.py supplies W, L, C_g'', V_OFF, mobility, access geometry)
-Same method and same five fitted parameters as Device 1 (fit.py, Step 5b); the paper gives no values for either device.
+Same method and the same five fitted parameters as Device 1 (fit.py, Step 5b), plus gamma of Eq. (9) (Step 8c, option 1,
+decided 2026-11-17): it sets the subthreshold slope of the numerical charge (gate.n_exact). The paper gives no values.
 Fitted data: Fig. 6(b) I_D and G_M at V_DS = 5 V [P]. Fig. 7(b) is used as a check, not fitted, because its V_GS
 labels are not printed (printed item 12): it is scored with both label sets of fig7b_measured.csv.
 Saves params_device2.json.
@@ -38,7 +39,8 @@ FREE = [("u0",    U0_ACC,         100e-4, 3000e-4, 0.05, "m^2/Vs", "U0, access m
         ("vsat0", cur.VSAT0,      2e4,    1e6,     1e5,  "m/s",    "V_SAT0 [P]"),
         ("th2",   cur.THETA_SAT2, 0.01,   2.0,     0.3,  "-",      "theta_SAT2 [P]"),
         ("delta", cur.DELTA_DS,   1.0,    10.0,    1.0,  "-",      "delta in V_DS,eff [P, no value]"),
-        ("beta",  2.0,            0.5,    20.0,    1.0,  "-",      "beta in access R [T Eq. 5.1, no value]")]
+        ("beta",  2.0,            0.5,    20.0,    1.0,  "-",      "beta in access R [T Eq. 5.1, no value]"),
+        ("gamma", 0.55,           0.2,    1.0,     0.1,  "-",      "gamma, Eq. (9) [P, no value]")]
 NAMES = [f[0] for f in FREE]
 FIXED = {"vsat_acc": 1.8e5,     # m/s [TCAD, GaN.par saturation velocity], as Device 1
          "mu_a": 0.0, "theta_sat": 0.0}          # as Device 1 (Step 5b)
@@ -96,24 +98,26 @@ if __name__ == "__main__":
     sol = run_fit(p0)
     print("fitted: rms I_D = {:.2f} mA, G_M = {:.2f} mS".format(*rms(sol.x)), f"  ({time.time() - t0:.0f} s)")
     print("paper's model line on the same points: rms I_D = {:.2f} mA, G_M = {:.2f} mS".format(*paper_rms()))
-    sol2 = run_fit([0.05, 3e5, 0.1, 6.0, 4.0])
+    sol2 = run_fit([0.05, 3e5, 0.1, 6.0, 4.0, 0.4])
     print()
     print(f"{'parameter':36s}{'start':>11s}{'fitted':>12s}{'other start':>14s}  unit")
     for (name, start, lo, hi, scale, unit, meaning), v, v2 in zip(FREE, sol.x, sol2.x):
         note = "  <- at its bound" if min(v - lo, hi - v) < 1e-3 * scale else ""
         print(f"{meaning:36s}{start:11.4g}{v:12.4g}{v2:14.4g}  {unit}{note}")
     Rs0, Rd0 = r_access(0.0, L_SG, u0=sol.x[0]), r_access(0.0, L_GD, u0=sol.x[0])
+    print(f"subthreshold slope from gamma: {1000 * np.log(10) * cur.PHIT / sol.x[5]:.0f} mV/dec")
     print(f"R_S0 = {Rs0:.2f} ohm ({Rs0 * W_MM:.2f} ohm.mm), R_D0 = {Rd0:.2f} ohm ({Rd0 * W_MM:.2f} ohm.mm)")
     print()
     print(f"Fig. 7(b) check ({len(out7)} points, not fitted): rms {rms_out(sol.x, 0):.2f} mA with V_GS = -1.6:0.2:1.0 V, "
           f"{rms_out(sol.x, 1):.2f} mA with V_GS from Fig. 6(b)")
     print()
     print(" V_GS   I_D model  measured (mA)    G_M model  measured (mS)")
-    for v in [-1.2, -0.8, -0.4, 0.0, 0.4, 0.8, 1.0]:
+    for v in [-1.4, -1.2, -1.0, -0.8, -0.4, 0.0, 0.4, 0.8, 1.0]:
         print(f"{v:5.1f} {model_id(sol.x, v, 5.0):9.2f} {np.interp(v, id6[:, 0], id6[:, 1]):9.2f}"
               f"      {model_gm(sol.x, v):9.2f} {np.interp(v, gm6[:, 0], gm6[:, 1]):9.2f}")
-    result = {"source": "fit2.py, Step 8b: least squares to the measured points of Nazir et al. 2025 Fig. 6(b)",
+    result = {"source": "fit2.py, Step 8c: least squares to the measured points of Nazir et al. 2025 Fig. 6(b)",
               "fitted [CALIBRATE]": dict(zip(NAMES, map(float, sol.x))),
+              "gamma_placement": "m = 2/(3 gamma) on phi_t eta_F in the gate line of the numerical charge [DEVIATION, Step 8c]",
               "fixed": {**FIXED, "v_off": d2.V_OFF, "mu_lf": d2.MU_LF, "th1": cur.THETA_SAT1, "n_max": cur.N_MAX,
                         "mu_b": cur.MU_B, "n_acc_cm2": N_ACC, "l_sg": L_SG, "l_gd": L_GD, "cg_form": "eps/(2d+t) [P]"},
               "rms": {"fig6b_ID_mA": float(rms(sol.x)[0]), "fig6b_gM_mS": float(rms(sol.x)[1]),
