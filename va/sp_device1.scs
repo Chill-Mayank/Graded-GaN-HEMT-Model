@@ -1,0 +1,20 @@
+// sp_device1.scs - Step 10c: S-parameters of graded_hemt.va, Device 1, V_GS = 0.0 V, V_DS = 10.0 V
+// written by va_netlists.py on 2026-11-18; ideal bias tees (1 H, 1 F) keep the 50-ohm ports off the DC path
+simulator lang=spectre
+global 0
+ahdl_include "graded_hemt.va"
+VG (gb 0) vsource dc=0.0
+LG (gb g) inductor l=1
+CG (p1 g) capacitor c=1
+P1 (p1 0) port r=50 num=1
+VD (db 0) vsource dc=10.0
+LD (db d) inductor l=1
+CD (p2 d) capacitor c=1
+P2 (p2 0) port r=50 num=2
+DUT (d g 0) graded_hemt \
+    w=0.00015 l=7e-07 epsr=9.5 db=0 tg=2e-08 meff=0.217 tdev=300 voff=-1.26032316972305 \
+    gam=0.666666666666667 mulf=0.091 mua=0 mub=0 thsat=0 vsat0=74680.2100041908 th1=0.3 \
+    th2=0.564098277435682 nmax=5e+16 delta=4.35464616798877 lsg=5e-07 lgd=3.5e-06 nacc=1.13e+17 \
+    u0=0.0631037281039283 vsatacc=180000 beta=1.29123847508154 \
+    rg=17.5 cgsfr=0 cgdfr=1.67e-14 cdsfr=0
+sp1 sp ports=[P1 P2] start=1G stop=60G dec=20 file="sp_device1.s2p" datafmt=touchstone
