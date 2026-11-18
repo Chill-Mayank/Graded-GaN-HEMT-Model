@@ -1,0 +1,8 @@
+# Nazir et al., IEEE TED 72(9) 2025, Fig. 10(b): Device 1, two-tone, f0 = 10 GHz, delta f = 10 MHz, V_DS = 15 V, Z_S = 20+26j ohm, Z_L = 50+140j ohm; P_FUND and IM3 left axis, OIP3/P_DC right axis; measured (symbols)
+# read from the PDF's vector drawing (exact plotted positions), extracted 2026-11-18 (Step 10b)
+Pdel_dBm,Pfund_dBm
+-1.39907,8.04967
+0.600155,10.5322
+2.59939,12.5594
+4.59863,14.2815
+6.49826,16.004

@@ -1,0 +1,12 @@
+# Nazir et al., IEEE TED 72(9) 2025, Fig. 11(b): Device 1, V_DS = 10 V, f_T and f_MAX vs I_DS (mA/mm); measured (symbols)
+# read from the PDF's vector drawing (exact plotted positions), extracted 2026-11-18 (Step 10b)
+IDS_mA_per_mm,fT_GHz
+50.127,16.9025
+110.122,20.8926
+190.116,21.9891
+260.001,22.9333
+325.051,23.9079
+399.99,23.0251
+465.919,21.4103
+539.981,20.9535
+605.029,19.8875

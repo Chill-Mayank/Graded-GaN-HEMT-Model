@@ -1,0 +1,209 @@
+// graded_hemt.va - Step 10a (2026-11-17): Verilog-A port of the replicated compact model of
+//   M. S. Nazir et al., "A Compact Model for Polarization-Graded HEMTs Demonstrating Enhanced Linearity",
+//   IEEE TED 72(9), 4795-4801, 2025 [P].
+// Line-for-line translation of va_twin.py, which is tested against the validated Python model (fit.py, fit2.py).
+// Repository: graded-gan-compact-model. Units SI throughout (sheet densities in m^-2).
+//
+// Terminals: d g s. Internal nodes: gi (after R_G), di and si (after the access resistances).
+// Model chain
+//   F_1/2           Eq. (2) with the 2/sqrt(pi) of Eq. (1) [P; Step 1]
+//   channel charge  n = (N_C F_1/2(eta))^(2/3) solved with the gate line u (V_g0 - m phi_t eta), m = 2/(3 gamma)
+//                   [P, Sec. II-B; DEVIATION D1: numerical charge instead of Eqs. (9)-(15); gamma placement Step 8c]
+//   current         Eq. (17) with V_SAT(n), V_DSAT, V_DS,eff [P]; V_DSAT uses q n/C_g'' [DEVIATION D2, Step 4]
+//   charges         Eq. (19) for Q_g [P]; Ward-Dutton Q_d ([24] Eq. (13) as corrected) [P, Step 7]
+//   access          R = R0/[1-(I/I_sat)^beta]^(1/beta) [T, Eqs. 5.1-5.3], written as its exact inverse
+//                   I(V) = (V/R0)/[1+(|V|/(R0 I_sat))^beta]^(1/beta) [CALC]
+//   V_DS < 0        source and drain swap roles [ASSUME: standard interchange]
+//   fringing caps   C_GS,Fr, C_GD,Fr, C_DS,Fr [P, Sec. III names them; form not given: constants for now, ASSUME]
+//   gate resistance R_G [ASSUME: not described in the paper; 0 = short]
+// Temperature is the parameter tdev (300 K, as the Python model), not the simulator temperature.
+
+`include "disciplines.vams"
+
+`define Q_E    1.602176634e-19
+`define K_B    1.380649e-23
+`define H_BAR  1.054571817e-34
+`define M_0    9.1093837e-31
+`define EPS_0  8.8541878128e-12
+`define A_AY   9.6
+`define B_AY   2.13
+`define GAM32  0.886226925452758
+`define LN2SP  0.120782237635245
+`define C_HI   4.242640687119285
+`define PI_C   3.141592653589793
+
+module graded_hemt(d, g, s);
+  inout d, g, s;
+  electrical d, g, s, di, gi, si;
+
+  // ---- geometry and stack [P]
+  parameter real w     = 150e-6  from (0:inf);      // m, total gate width
+  parameter real l     = 0.7e-6  from (0:inf);      // m, gate length
+  parameter real epsr  = 9.5     from (0:inf);      // relative permittivity [ASSUME, Fig. 4(b) fit]
+  parameter real db    = 0.0     from [0:inf);      // m, AlGaN barrier thickness d_AlGaN
+  parameter real tg    = 20e-9   from (0:inf);      // m, graded-layer thickness t
+  parameter real meff  = 0.217   from (0:inf);      // m*/m0 [Fig. 4(a) fit]
+  parameter real tdev  = 300.0   from (0:inf);      // K
+  // ---- channel
+  parameter real voff  = -1.26;                     // V
+  parameter real gam   = 0.666666666666667 from (0:inf);   // gamma of Eq. (9); 2/3 gives m = 1
+  parameter real mulf  = 0.091   from (0:inf);      // m^2/Vs, low-field mobility
+  parameter real mua   = 0.0;                       // m/V
+  parameter real mub   = 0.0;                       // m^2/V^2
+  parameter real thsat = 0.0     from [0:inf);      // 1/V
+  parameter real vsat0 = 1e5     from (0:inf);      // m/s
+  parameter real th1   = 0.3     from (0:inf);
+  parameter real th2   = 0.3     from (0:inf);
+  parameter real nmax  = 5e16    from (0:inf);      // m^-2
+  parameter real delta = 2.0     from (1:inf);      // V_DS,eff smoothing exponent
+  // ---- access regions [T, Eqs. 5.1-5.3]
+  parameter real lsg     = 0.5e-6 from (0:inf);     // m
+  parameter real lgd     = 3.5e-6 from (0:inf);     // m
+  parameter real nacc    = 1.13e17 from (0:inf);    // m^-2, access sheet density
+  parameter real u0      = 0.0631 from (0:inf);     // m^2/Vs, access mobility
+  parameter real vsatacc = 1.8e5  from (0:inf);     // m/s
+  parameter real beta    = 2.0    from (1:inf);
+  // ---- extrinsic elements
+  parameter real rg    = 0.0     from [0:inf);      // ohm
+  parameter real cgsfr = 0.0     from [0:inf);      // F
+  parameter real cgdfr = 0.0     from [0:inf);      // F
+  parameter real cdsfr = 0.0     from [0:inf);      // F
+
+  // ln F_1/2(eta) by Eq. (2), evaluated so that it never overflows
+  analog function real lnfh;
+    input eta;
+    real eta, fs, fb, fh;
+    begin
+      fs = sqrt((eta - `B_AY) * (eta - `B_AY) + `A_AY);
+      fb = `B_AY + eta + fs;
+      fh = `C_HI * pow(fb, -1.5);
+      if (eta < 0.0)
+        lnfh = `LN2SP + eta - ln(fh * exp(eta) + 1.0 / `GAM32);
+      else
+        lnfh = `LN2SP - ln(fh + exp(-eta) / `GAM32);
+    end
+  endfunction
+
+  // d ln F_1/2 / d eta
+  analog function real dlnfh;
+    input eta;
+    real eta, fs, fb, fh, fdh, fe, fl;
+    begin
+      fs = sqrt((eta - `B_AY) * (eta - `B_AY) + `A_AY);
+      fb = `B_AY + eta + fs;
+      fh = `C_HI * pow(fb, -1.5);
+      fdh = -1.5 * fh * (1.0 + (eta - `B_AY) / fs) / fb;
+      if (eta < 0.0) begin
+        fe = exp(eta);
+        dlnfh = -(fdh * fe - 1.0 / `GAM32) / (fh * fe + 1.0 / `GAM32);
+      end else begin
+        fl = exp(-eta) / `GAM32;
+        dlnfh = -(fdh - fl) / (fh + fl);
+      end
+    end
+  endfunction
+
+  real phit, xdos, lnnc, cg, u, mm, teff, qacc, r0s, r0d, isat;
+  real vgs, vds, vg, vd, mode, vg0, c, hi, lo, eta, enew, dn, sh, dsh, f, it;
+  real n, vq, vsat, eys, mus, vdsat, vdeff, um, ey, mu, mueff, ids;
+  real us, ud, k, qg, qd, qdp, vsi, vdi;
+
+  analog begin
+    // ---- constants of the device
+    phit = `K_B * tdev / `Q_E;
+    xdos = meff * `M_0 * `K_B * tdev / (`PI_C * `H_BAR * `H_BAR);      // m^-2
+    lnnc = ln(0.25 * pow(2.0 * xdos, 1.5));                           // ln N_C, N_C in m^-3 [P]
+    cg   = epsr * `EPS_0 / (2.0 * db + tg);                           // F/m^2, printed form [P]
+    u    = cg / `Q_E;                                                 // m^-2 per V
+    mm   = 2.0 / (3.0 * gam);
+    teff = db + tg;
+    qacc = `Q_E * nacc;
+    r0s  = lsg / (w * qacc * u0);
+    r0d  = lgd / (w * qacc * u0);
+    isat = w * qacc * vsatacc;
+
+    // ---- intrinsic bias, with source-drain interchange
+    vgs = V(gi, si);
+    vds = V(di, si);
+    if (vds >= 0.0) begin
+      mode = 1.0;  vg = vgs;        vd = vds;
+    end else begin
+      mode = -1.0; vg = vgs - vds;  vd = -vds;
+    end
+
+    // ---- channel charge: safeguarded Newton on f = S(eta) - u (V_g0 - m phi_t eta) (va_twin.eta_solve)
+    vg0 = vg - voff;
+    c   = u * mm * phit;
+    hi  = vg0 / (mm * phit);
+    sh  = exp(2.0 / 3.0 * (lnnc + lnfh(hi)));
+    lo  = hi - sh / c - 1.0;
+    eta = hi;
+    it  = 0;
+    dn  = 1.0;
+    while (it < 200 && abs(dn) > 1e-13 * (1.0 + abs(eta))) begin
+      sh  = exp(2.0 / 3.0 * (lnnc + lnfh(eta)));
+      dsh = 2.0 / 3.0 * sh * dlnfh(eta);
+      f   = sh - u * vg0 + c * eta;
+      if (f > 0.0)
+        hi = eta;
+      else
+        lo = eta;
+      enew = eta - f / (dsh + c);
+      if (enew <= lo || enew >= hi)
+        enew = 0.5 * (lo + hi);
+      dn  = enew - eta;
+      eta = enew;
+      it  = it + 1;
+    end
+    // final Newton step: makes the derivatives the simulator takes exact, whatever path the loop took
+    sh  = exp(2.0 / 3.0 * (lnnc + lnfh(eta)));
+    dsh = 2.0 / 3.0 * sh * dlnfh(eta);
+    eta = eta - (sh - u * vg0 + c * eta) / (dsh + c);
+    n   = exp(max(2.0 / 3.0 * (lnnc + lnfh(eta)), -400.0));          // m^-2; floor only below V_g0 ~ -20 V
+
+    // ---- drain current, Eq. (17) [P]
+    vq    = n / u;                                                    // V, q n / C_g''
+    vsat  = vsat0 / (th1 + pow(n / nmax, th2));
+    eys   = vq / teff;
+    mus   = mulf / (1.0 + mua * eys + mub * eys * eys);
+    vdsat = vq / (1.0 + vq * mus / (2.0 * vsat * l));
+    if (vd <= vdsat)                // V_DS/(1+(V_DS/V_DSAT)^delta)^(1/delta), with the ratio <= 1 on each side
+      vdeff = vd / pow(1.0 + pow(vd / vdsat, delta), 1.0 / delta);
+    else                            // (same function: no overflow, no 0/0)
+      vdeff = vdsat / pow(1.0 + pow(vdsat / vd, delta), 1.0 / delta);
+    um    = vq - 0.5 * vdeff;                                         // V_g0 - V_m
+    ey    = um / teff;
+    mu    = mulf / (1.0 + mua * ey + mub * ey * ey);
+    mueff = mu / sqrt(1.0 + (thsat * vdeff) * (thsat * vdeff));
+    ids   = w / l * mueff * cg * (um + phit) * vdeff;
+
+    // ---- terminal charges, Eq. (19) and Ward-Dutton [P, Step 7], in u_s = q n/C_g'' and u_d = u_s - V_DS,eff
+    us = vq;
+    ud = vq - vdeff;
+    k  = cg * w * l;
+    qg = k * ((us * us + us * ud + ud * ud) / 3.0 + phit * 0.5 * (us + ud)) / (0.5 * (us + ud) + phit);
+    qd = -k * (8.0 * us * us * us + 16.0 * us * us * ud + 24.0 * us * ud * ud + 12.0 * ud * ud * ud
+              + phit * (25.0 * us * us + 50.0 * us * ud + 45.0 * ud * ud)
+              + phit * phit * (20.0 * us + 40.0 * ud)) / (30.0 * (us + ud + 2.0 * phit) * (us + ud + 2.0 * phit));
+    if (mode > 0.0)
+      qdp = qd;                     // physical drain charge
+    else
+      qdp = -(qg + qd);             // swapped: the physical drain holds the computed source charge
+
+    // ---- contributions
+    I(di, si) <+ mode * ids;
+    I(gi, si) <+ ddt(qg);
+    I(di, si) <+ ddt(qdp);
+    I(gi, si) <+ ddt(cgsfr * V(gi, si));
+    I(gi, di) <+ ddt(cgdfr * V(gi, di));
+    I(di, si) <+ ddt(cdsfr * V(di, si));
+    vdi = V(d, di);
+    vsi = V(si, s);
+    I(d, di)  <+ (vdi / r0d) / pow(1.0 + pow(abs(vdi) / (r0d * isat), beta), 1.0 / beta);
+    I(si, s)  <+ (vsi / r0s) / pow(1.0 + pow(abs(vsi) / (r0s * isat), beta), 1.0 / beta);
+    if (rg > 0.0)
+      I(g, gi) <+ V(g, gi) / rg;
+    else
+      V(g, gi) <+ 0.0;
+  end
+endmodule

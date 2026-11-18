@@ -1,0 +1,25 @@
+// dc_device1.scs - Step 10a: DC check of graded_hemt.va against the Python model, Device 1
+// written by va_netlists.py on 2026-11-18 from params_device1.json; do not edit by hand
+simulator lang=spectre
+global 0
+ahdl_include "graded_hemt.va"
+parameters vgs=0 vds=10.0
+VG (g 0) vsource dc=vgs
+VD (d 0) vsource dc=vds
+DUT (d g 0) graded_hemt \
+    w=0.00015 l=7e-07 epsr=9.5 db=0 tg=2e-08 meff=0.217 tdev=300 voff=-1.26032316972305 \
+    gam=0.666666666666667 mulf=0.091 mua=0 mub=0 thsat=0 vsat0=74680.2100041908 th1=0.3 \
+    th2=0.564098277435682 nmax=5e+16 delta=4.35464616798877 lsg=5e-07 lgd=3.5e-06 nacc=1.13e+17 \
+    u0=0.0631037281039283 vsatacc=180000 beta=1.29123847508154
+save VD:p
+transfer dc param=vgs start=-3.0 stop=3.0 step=0.01
+set_k0 alter param=vgs value=-1.0
+out_k0 dc param=vds start=0.0 stop=15.0 step=0.05
+set_k1 alter param=vgs value=0.0
+out_k1 dc param=vds start=0.0 stop=15.0 step=0.05
+set_k2 alter param=vgs value=1.0
+out_k2 dc param=vds start=0.0 stop=15.0 step=0.05
+set_k3 alter param=vgs value=2.0
+out_k3 dc param=vds start=0.0 stop=15.0 step=0.05
+set_k4 alter param=vgs value=3.0
+out_k4 dc param=vds start=0.0 stop=15.0 step=0.05
