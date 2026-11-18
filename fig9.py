@@ -5,8 +5,8 @@ Model: Verilog-A twin (rf_twin.py) with the Step 11a DC parameters (params_devic
 RF-device calibration [CALIBRATE, user choice 1B, 18 Nov; DEVIATION D6]:
   1. DVOFF (V_OFF shift) and U0 (access mobility) to the low-frequency g_m = Re(Y21) of Fig. 9(b) at 1-3 GHz:
      the S-parameter device is on at V_GS = -2 V while Fig. 6(b) is off below -1.5 V (candidate printed item 17).
-  2. R_G and constant C_GS,Fr, C_GD,Fr, C_DS,Fr [ASSUME constant] to Fig. 9(a) |S21| and Fig. 9(d) H21, all biases.
-  g_ds (Fig. 9(c)) and g_m above 3 GHz are predicted, not fitted.
+  2. R_G and constant C_GS,Fr, C_GD,Fr, C_DS,Fr [ASSUME constant] to all four panels of Fig. 9, all biases
+     (g_m and g_ds up to 80 GHz). S21 and H21 alone cannot separate R_G from C_GS,Fr; the flat measured g_m can.
 """
 import json
 import numpy as np
@@ -56,7 +56,18 @@ r = RF(2, over=OV)
 def res(x):
     r.rg, r.cgs, r.cgd, r.cds = x[0], x[1] * 1e-15, x[2] * 1e-15, x[3] * 1e-15
     c = curves(r)
-    return np.concatenate([at(c, p, v, M[p][v][:, 0]) - M[p][v][:, 1] for p in "ad" for v in VG if not (p == "d" and v == -3)])
+    # all four panels (dB and mS on equal footing); g_m and g_ds above 80 GHz excluded: the measured traces turn
+    # erratic there (de-embedding resonance), visible in the paper's own Fig. 9(b)-(c) [ASSUME]
+    e = []
+    for p in "abcd":
+        for v in VG:
+            if p == "d" and v == -3:
+                continue
+            m = M[p][v]
+            if p in "bc":
+                m = m[m[:, 0] <= 80]
+            e.append(at(c, p, v, m[:, 0]) - m[:, 1])
+    return np.concatenate(e)
 s2 = least_squares(res, [5, 5, 5, 5], bounds=([0] * 4, [200] * 4))
 res(s2.x)
 c = curves(r)
@@ -90,7 +101,7 @@ for k, p in enumerate("abcd"):
     ax[k].grid(c="#e1e0d9")
 ax[0].legend(frameon=False, fontsize=8)
 fig.suptitle("Device 2, V_DS = 3 V: measured (circles), paper's model (thin), this work (dashed); "
-             "RF-device V_OFF shift and U0 from low-f g_m, R_G and fringing C from S21/H21", fontsize=10)
+             "RF-device V_OFF shift and U0 from low-f g_m, R_G and fringing C from all four panels", fontsize=10)
 plt.tight_layout()
 plt.savefig("fig9_device2.png", dpi=130)
 print("saved fig9_device2.png, rf_device2.json")
