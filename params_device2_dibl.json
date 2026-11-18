@@ -1,0 +1,22 @@
+{
+  "source": "fit2_dibl.py, Step 11a: Fig. 6(b) refit with DIBL, Verilog-A twin (Eq. (2) F_1/2)",
+  "fitted [CALIBRATE]": {
+    "u0": 0.10214945997463648,
+    "vsat0": 97314.0552407621,
+    "th2": 0.9550189797607145,
+    "delta": 9.258392645480583,
+    "beta": 18.541510894117426,
+    "gamma": 0.3985793594987924
+  },
+  "dibl [TCAD]": {
+    "v_off_n8": -0.63,
+    "sigma": 0.07676767676767676,
+    "vds_ref": 0.05
+  },
+  "rms": {
+    "fig6b_ID_mA": 0.17707027529935118,
+    "fig6b_gM_mS": 0.8626418305342208,
+    "fig7b_ID_mA_assumed_labels": 6.26177462777589,
+    "fig7b_ID_mA_labels_from_fig6b": 1.4134053103459525
+  }
+}

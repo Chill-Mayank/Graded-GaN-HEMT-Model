@@ -16,6 +16,7 @@
 //   V_DS < 0        source and drain swap roles [ASSUME: standard interchange]
 //   fringing caps   C_GS,Fr, C_GD,Fr, C_DS,Fr [P, Sec. III names them; form not given: constants for now, ASSUME]
 //   gate resistance R_G [ASSUME: not described in the paper; 0 = short]
+//   DIBL           V_OFF(V_DS) = voff + dvoff - sigma (V_DS,i - vdsref) [DEVIATION D5/D6, Step 11; sigma = 0 is the paper]
 // Temperature is the parameter tdev (300 K, as the Python model), not the simulator temperature.
 
 `include "disciplines.vams"
@@ -46,6 +47,9 @@ module graded_hemt(d, g, s);
   parameter real tdev  = 300.0   from (0:inf);      // K
   // ---- channel
   parameter real voff  = -1.26;                     // V
+  parameter real dvoff = 0.0;                       // V, shift for a separately measured device [Step 11b, D6]
+  parameter real sigma = 0.0     from [0:inf);      // DIBL: V_OFF - sigma (V_DS,i - vdsref) [Step 11a, D5]
+  parameter real vdsref = 0.0;                      // V
   parameter real gam   = 0.666666666666667 from (0:inf);   // gamma of Eq. (9); 2/3 gives m = 1
   parameter real mulf  = 0.091   from (0:inf);      // m^2/Vs, low-field mobility
   parameter real mua   = 0.0;                       // m/V
@@ -132,7 +136,7 @@ module graded_hemt(d, g, s);
     end
 
     // ---- channel charge: safeguarded Newton on f = S(eta) - u (V_g0 - m phi_t eta) (va_twin.eta_solve)
-    vg0 = vg - voff;
+    vg0 = vg - (voff + dvoff - sigma * (vd - vdsref));   // DIBL on the intrinsic V_DS (after the swap) [D5]
     c   = u * mm * phit;
     hi  = vg0 / (mm * phit);
     sh  = exp(2.0 / 3.0 * (lnnc + lnfh(hi)));

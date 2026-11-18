@@ -19,8 +19,8 @@ N = {"g": 0, "d": 1, "gi": 2, "di": 3, "si": 4}       # node s is ground
 
 
 class RF:
-    def __init__(self, dev, rg=0.0, cgs=0.0, cgd=0.0, cds=0.0):
-        self.tw = Twin(card(dev))
+    def __init__(self, dev, rg=0.0, cgs=0.0, cgd=0.0, cds=0.0, over=None):
+        self.tw = Twin({**card(dev), **(over or {})})
         self.rg, self.cgs, self.cgd, self.cds = rg, cgs, cgd, cds
 
     def op(self, vgs, vds):

@@ -49,7 +49,10 @@ def card(dev):
         VOFF=x["v_off"], GAMMA=(2 / 3 if gamma is None else gamma),
         MULF=x["mu_lf"], MUA=x["mu_a"], MUB=x["mu_b"], THSAT=x["theta_sat"],
         VSAT0=f["vsat0"], TH1=x["th1"], TH2=f["th2"], NMAX=x["n_max"], DELTA=f["delta"],
-        LSG=d.L_SG, LGD=d.L_GD, NACC=d.N_ACC * 1e4, U0=f["u0"], VSATACC=x["vsat_acc"], BETA=f["beta"])
+        LSG=d.L_SG, LGD=d.L_GD, NACC=d.N_ACC * 1e4, U0=f["u0"], VSATACC=x["vsat_acc"], BETA=f["beta"],
+        # DIBL [DEVIATION D5, user choice 2B, 18 Nov]: V_OFF(V_DS) = V_OFF - SIGMA (V_DS - VDSREF). Device 2 only:
+        # SIGMA = 0.38 V / (5 - 0.05) V from TCAD n6/n7 [TCAD]; VDSREF = 5 V, where V_OFF was set, so Fig. 6(b) is unchanged.
+        SIGMA=(0.38 / 4.95 if dev == 2 else 0.0), VDSREF=(5.0 if dev == 2 else 0.0), DVOFF=0.0)
 
 
 class Twin:
@@ -115,7 +118,7 @@ class Twin:
     def state(self, Vgs, Vds):
         """Intrinsic I (A) and charges (C) for V_DS >= 0 [P, Eqs. (17)-(19); current.py, terminal_charges.py]."""
         c = self.c
-        Vg0 = Vgs - c["VOFF"]
+        Vg0 = Vgs - (c["VOFF"] + c["DVOFF"] - c["SIGMA"] * (Vds - c["VDSREF"]))
         eta, _ = self.eta_solve(Vg0)
         lnF, _ = self.lnF_dlnF(eta)
         n = np.exp(max(2 / 3 * (self.lnNC + lnF), -400.0))              # m^-2; floor only below V_g0 ~ -20 V
