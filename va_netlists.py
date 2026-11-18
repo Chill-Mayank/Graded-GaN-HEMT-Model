@@ -79,9 +79,58 @@ def sp_netlist(dev=1, s=SP1):
     ]) + "\n"
 
 
+# Step 10d: Fig. 10, Device 1 large signal at 10 GHz [P, Sec. III]: V_DS = 15 V, I_DS = 25 mA (V_GS = -0.33532 V from
+# va_twin, [CALC]); Fig. 10(a) Z_S = 25 + 26j, Z_L = 45 + 96j ohm; Fig. 10(b) two tones 10 GHz and 10.01 GHz,
+# Z_S = 20 + 26j, Z_L = 50 + 140j ohm. Each impedance is a resistor (the port) in series with an inductor giving the
+# printed reactance at 10 GHz; at the harmonics it is R + j n X [ASSUME: the paper does not give harmonic terminations].
+HB = dict(vgs=-0.33532, vds=15.0, f0=10e9, df=10e6)
+
+
+def hb_netlist(two_tone=False, s=SP1, h=HB):
+    c = card(1)
+    rs, xs, rl, xl = (20, 26, 50, 140) if two_tone else (25, 26, 45, 96)
+    w = 2 * 3.141592653589793 * h["f0"]
+    src = (f'P1 (p1 0) port r={rs} num=1 type=sine freq={h["f0"]:.6g} dbm=prf fundname="f1" '
+           f'freq2={h["f0"] + h["df"]:.6g} dbm2=prf fundname2="f2"' if two_tone else
+           f'P1 (p1 0) port r={rs} num=1 type=sine freq={h["f0"]:.6g} dbm=prf fundname="f1"')
+    # hb takes no start/stop/step (Spectre 20.1 warning SFE-106): the power sweep wraps it [Spectre RF manual]
+    ana = ('swp sweep param=prf start=-6 stop=10 step=1 {\n'
+           '  hb1 hb funds=["f1" "f2"] maxharms=[5 5] errpreset=conservative annotate=status\n}'
+           if two_tone else
+           'swp sweep param=prf start=-10 stop=22 step=1 {\n'
+           '  hb1 hb funds=["f1"] maxharms=[9] errpreset=conservative annotate=status\n}')
+    name = "hb2_device1" if two_tone else "hb_device1"
+    return "\n".join([
+        f"// {name}.scs - Step 10d: Fig. {'10(b) two-tone' if two_tone else '10(a) power sweep'}, Device 1, harmonic balance",
+        f"// written by va_netlists.py on {datetime.date.today()}; Z_S = {rs}+{xs}j, Z_L = {rl}+{xl}j ohm at 10 GHz [P]",
+        "simulator lang=spectre",
+        "global 0",
+        'ahdl_include "graded_hemt.va"',
+        "parameters prf=0",
+        f"VG (gb 0) vsource dc={h['vgs']}",
+        "LG (gb g) inductor l=1",
+        "CG (gs g) capacitor c=1",
+        f"LS (p1 gs) inductor l={xs / w:.6g}",
+        src,
+        f"VD (db 0) vsource dc={h['vds']}",
+        "LD (db d) inductor l=1",
+        "CD (dl d) capacitor c=1",
+        f"LL (p2 dl) inductor l={xl / w:.6g}",
+        f"P2 (p2 0) port r={rl} num=2",
+        "DUT (d g 0) graded_hemt \\",
+        instance_params(c) + " \\",
+        f"    rg={s['rg']} cgsfr={s['cgsfr']:.6g} cgdfr={s['cgdfr']:.6g} cdsfr={s['cdsfr']:.6g}",
+        "save p1 p2 gs g d P1:p VD:p",
+        ana,
+    ]) + "\n"
+
+
 if __name__ == "__main__":
     open("va/sp_device1.scs", "w").write(sp_netlist(1))
     print("wrote va/sp_device1.scs")
+    open("va/hb_device1.scs", "w").write(hb_netlist(False))
+    open("va/hb2_device1.scs", "w").write(hb_netlist(True))
+    print("wrote va/hb_device1.scs, va/hb2_device1.scs")
     os.makedirs("va", exist_ok=True)
     for dev in (1, 2):
         fn = f"va/dc_device{dev}.scs"

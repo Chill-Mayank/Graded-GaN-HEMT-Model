@@ -1,0 +1,26 @@
+// hb_device1.scs - Step 10d: Fig. 10(a) power sweep, Device 1, harmonic balance
+// written by va_netlists.py on 2026-11-18; Z_S = 25+26j, Z_L = 45+96j ohm at 10 GHz [P]
+simulator lang=spectre
+global 0
+ahdl_include "graded_hemt.va"
+parameters prf=0
+VG (gb 0) vsource dc=-0.33532
+LG (gb g) inductor l=1
+CG (gs g) capacitor c=1
+LS (p1 gs) inductor l=4.13803e-10
+P1 (p1 0) port r=25 num=1 type=sine freq=1e+10 dbm=prf fundname="f1"
+VD (db 0) vsource dc=15.0
+LD (db d) inductor l=1
+CD (dl d) capacitor c=1
+LL (p2 dl) inductor l=1.52789e-09
+P2 (p2 0) port r=45 num=2
+DUT (d g 0) graded_hemt \
+    w=0.00015 l=7e-07 epsr=9.5 db=0 tg=2e-08 meff=0.217 tdev=300 voff=-1.26032316972305 \
+    gam=0.666666666666667 mulf=0.091 mua=0 mub=0 thsat=0 vsat0=74680.1577528796 th1=0.3 \
+    th2=0.564095223621914 nmax=5e+16 delta=4.35455322106239 lsg=5e-07 lgd=3.5e-06 nacc=1.13e+17 \
+    u0=0.0631042693859589 vsatacc=180000 beta=1.29120716907309 \
+    rg=17.5 cgsfr=0 cgdfr=1.67e-14 cdsfr=0
+save p1 p2 gs g d P1:p VD:p
+swp sweep param=prf start=-10 stop=22 step=1 {
+  hb1 hb funds=["f1"] maxharms=[9] errpreset=conservative annotate=status
+}
