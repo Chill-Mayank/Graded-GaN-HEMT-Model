@@ -1,0 +1,18 @@
+# Nazir et al., IEEE TED 72(9) 2025, Fig. 8: Device 2, V_DS = 3 V, S21, V_GS = -1 V; measured (symbols, 1-110 GHz, order along the trace); polar chart, rim = 3.0
+# read from the PDF's vector drawing (exact plotted positions), extracted 2026-11-18 (Step 12b)
+Re,Im
+-2.15151,0.0345939
+-2.08418,0.412979
+-1.93348,0.768864
+-1.69942,1.05423
+-1.44292,1.25944
+-1.18641,1.39091
+-0.901056,1.50634
+-0.612487,1.48709
+-0.381632,1.44862
+-0.237346,1.3396
+-0.0866476,1.2915
+0.0223671,1.24983
+0.201917,1.14081
+0.32376,1.04461
+0.365436,1.00293

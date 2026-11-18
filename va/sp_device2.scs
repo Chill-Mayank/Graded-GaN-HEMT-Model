@@ -1,0 +1,29 @@
+// sp_device2.scs - Step 12c: S-parameters of graded_hemt.va, Device 2, V_DS = 3 V, V_GS = -3, -2, -1, 0 V
+// written by va_netlists.py on 2026-11-18 from params_device2_dibl.json and rf_device2.json
+simulator lang=spectre
+global 0
+ahdl_include "graded_hemt.va"
+parameters vgs=0
+VG (gb 0) vsource dc=vgs
+LG (gb g) inductor l=1
+CG (p1 g) capacitor c=1
+P1 (p1 0) port r=50 num=1
+VD (db 0) vsource dc=3
+LD (db d) inductor l=1
+CD (p2 d) capacitor c=1
+P2 (p2 0) port r=50 num=2
+DUT (d g 0) graded_hemt \
+    w=7.5e-05 l=5e-08 epsr=9.5 db=9e-09 tg=6e-09 meff=0.217 tdev=300 \
+    gam=0.398579359498792 mulf=0.138 mua=0 mub=0 thsat=0 vsat0=97314.0552407621 th1=0.3 \
+    th2=0.955018979760714 nmax=5e+16 delta=9.25839264548058 lsg=6e-07 lgd=6e-07 nacc=3.6e+16 \
+    u0=0.0615833620844039 vsatacc=180000 beta=18.5415108941174 \
+    voff=-0.63 dvoff=-0.97935075685015 sigma=0.0767676767676768 vdsref=0.05 \
+    rg=3.6026666252028 cgsfr=2.97354674677795e-14 cgdfr=1.14049462182177e-14 cdsfr=1.33296031916076e-26
+set0 alter param=vgs value=-3.0
+sp0 sp ports=[P1 P2] start=1G stop=110G dec=20 file="sp_device2_vg0.s2p" datafmt=touchstone
+set1 alter param=vgs value=-2.0
+sp1 sp ports=[P1 P2] start=1G stop=110G dec=20 file="sp_device2_vg1.s2p" datafmt=touchstone
+set2 alter param=vgs value=-1.0
+sp2 sp ports=[P1 P2] start=1G stop=110G dec=20 file="sp_device2_vg2.s2p" datafmt=touchstone
+set3 alter param=vgs value=0.0
+sp3 sp ports=[P1 P2] start=1G stop=110G dec=20 file="sp_device2_vg3.s2p" datafmt=touchstone

@@ -1,0 +1,14 @@
+# Nazir et al., IEEE TED 72(9) 2025, Fig. 8: Device 2, V_DS = 3 V, S22, V_GS = 0 V; measured (symbols, 1-110 GHz, order along the trace); Smith chart, |Gamma| = 1 at the rim
+# read from the PDF's vector drawing (exact plotted positions), extracted 2026-11-18 (Step 12b)
+Re,Im
+0.590632,-0.00919918
+0.575192,-0.0709524
+0.539562,-0.126775
+0.487306,-0.171907
+0.437424,-0.203973
+0.372105,-0.219413
+0.311532,-0.245542
+0.255713,-0.230102
+0.186828,-0.249106
+0.0870323,-0.249106
+-0.0151211,-0.240792

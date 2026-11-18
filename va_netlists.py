@@ -125,7 +125,38 @@ def hb_netlist(two_tone=False, s=SP1, h=HB):
     ]) + "\n"
 
 
+# Step 12c: Device 2 S-parameters at the four Fig. 8-9 biases (V_DS = 3 V), model of Step 11 (DIBL D5, RF-device
+# shift D6, extrinsics from fig9.py): parameters read from params_device2_dibl.json and rf_device2.json
+SP2_VG = (-3.0, -2.0, -1.0, 0.0)
+
+
+def sp2_netlist():
+    import json
+    BASE = {"VOFF": -0.63, "SIGMA": 0.38 / 4.95, "VDSREF": 0.05}          # as fit2_dibl.py [TCAD n6-n8]
+    KEY = {"u0": "U0", "vsat0": "VSAT0", "th2": "TH2", "delta": "DELTA", "beta": "BETA", "gamma": "GAMMA"}
+    P = json.load(open("params_device2_dibl.json"))["fitted [CALIBRATE]"]
+    R = json.load(open("rf_device2.json"))
+    c = {**card(2), **{KEY[n]: v for n, v in P.items()}, "U0": R["U0_m2Vs"]}
+    extra = (f"    voff={BASE['VOFF']:.15g} dvoff={R['DVOFF_V']:.15g} sigma={BASE['SIGMA']:.15g} vdsref={BASE['VDSREF']:.15g} \\\n"
+             f"    rg={R['RG_ohm']:.15g} cgsfr={R['CGSFR_F']:.15g} cgdfr={R['CGDFR_F']:.15g} cdsfr={R['CDSFR_F']:.15g}")
+    inst = instance_params({**c, "VOFF": BASE["VOFF"]}).replace(f"voff={BASE['VOFF']:.15g} ", "")
+    lines = [f"// sp_device2.scs - Step 12c: S-parameters of graded_hemt.va, Device 2, V_DS = 3 V, V_GS = -3, -2, -1, 0 V",
+             f"// written by va_netlists.py on {datetime.date.today()} from params_device2_dibl.json and rf_device2.json",
+             "simulator lang=spectre", "global 0", 'ahdl_include "graded_hemt.va"', "parameters vgs=0",
+             "VG (gb 0) vsource dc=vgs", "LG (gb g) inductor l=1", "CG (p1 g) capacitor c=1", "P1 (p1 0) port r=50 num=1",
+             "VD (db 0) vsource dc=3", "LD (db d) inductor l=1", "CD (p2 d) capacitor c=1", "P2 (p2 0) port r=50 num=2",
+             "DUT (d g 0) graded_hemt \\", inst + " \\", extra]
+    for k, v in enumerate(SP2_VG):
+        lines += [f"set{k} alter param=vgs value={v}",
+                  f'sp{k} sp ports=[P1 P2] start=1G stop=110G dec=20 file="sp_device2_vg{k}.s2p" datafmt=touchstone']
+    return "\n".join(lines) + "\n"
+
+
 if __name__ == "__main__":
+    import os as _os
+    if _os.path.exists("params_device2_dibl.json") and _os.path.exists("rf_device2.json"):
+        open("va/sp_device2.scs", "w").write(sp2_netlist())
+        print("wrote va/sp_device2.scs")
     open("va/sp_device1.scs", "w").write(sp_netlist(1))
     print("wrote va/sp_device1.scs")
     open("va/hb_device1.scs", "w").write(hb_netlist(False))
