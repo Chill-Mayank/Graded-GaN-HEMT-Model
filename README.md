@@ -1,6 +1,6 @@
 <div align="center">
 
-# Graded-GaN Compact Model
+# Graded-GaN-HEMT-Model
 
 ### An independent, figure-by-figure replication of the compact model for polarization-graded GaN HEMTs<br/>(Nazir *et al.*, *IEEE Trans. Electron Devices* 72(9), 2025), rebuilt in Python and Verilog-A, cross-checked in Sentaurus TCAD and Cadence Spectre
 
@@ -448,7 +448,7 @@ The step notebooks (`step1c_fig1b.ipynb` … `step5c_device1_final.ipynb`) walk 
 ## Repository layout
 
 ```text
-graded-gan-compact-model/
+Graded-GaN-HEMT-Model/
 ├── fermi.py              Fermi–Dirac integral: exact and Eq. (2)
 ├── charge.py             regional charge solutions, Eqs. (9)–(13)
 ├── gate.py               channel charge n(V_GS): numerical solution and closed form, Eqs. (8)–(15)
@@ -515,4 +515,4 @@ text were prepared with the assistance of an AI system (Claude, Anthropic); ever
 
 <sub>No license has been chosen yet, so all rights are reserved for now.</sub>
 
-<div align="right"><a href="#graded-gan-compact-model">back to top ↑</a></div>
+<div align="right"><a href="#graded-gan-hemt-model">back to top ↑</a></div>
