@@ -13,6 +13,8 @@ Definitions (as in fom.py, Step 13a):
   GVS80 / GVS90: V_GS range with g_m >= 80 % / 90 % of the peak; V_IP3 = sqrt(4 g_m / 3|g_m3|).
   V_th: linear extrapolation of I_D at the g_m peak; V_OFF: V_GS at I_D = 1 mA/mm (same criterion as n7);
   SS: minimum dV_GS/dlog10(I_D) for 1e-7 < I_D < 1e-3 A/mm.
+Check g050 vs n7 (same structure and physics): max relative difference of I_D above 1 mA/mm, comparing
+  log-interpolated curves; first version (19 Nov) used linear interpolation and gave 0.80 % on the real runs.
 """
 import glob
 import json
@@ -91,7 +93,9 @@ if __name__ == "__main__":
     if "n7" in runs and "g050" in runs:                        # the check: g050 must reproduce n7
         va, ia = transfer(runs["n7"]); vb, ib = transfer(runs["g050"])
         vv = np.arange(max(va[0], vb[0]) + 0.05, min(va[-1], vb[-1]) - 0.05, 0.01)
-        A, B = np.interp(vv, va, ia), np.interp(vv, vb, ib)
+        # interpolate log(I): I_D is exponential near turn-on, and the two runs land on different V_GS points
+        # (n7 every 20 mV, the study every 21 mV), so linear interpolation of I alone errs by ~1 % there
+        A = np.exp(np.interp(vv, va, np.log(np.abs(ia)))); B = np.exp(np.interp(vv, vb, np.log(np.abs(ib))))
         on = A > 1e-3
         rel = float(np.max(np.abs(B[on] / A[on] - 1)) * 100) if on.any() else float("nan")
         print(f"CHECK g050 vs n7 over {vv[0]:+.2f} .. {vv[-1]:+.2f} V: max |dI|/I = {rel:.3f} % where I_D > 1 mA/mm"
