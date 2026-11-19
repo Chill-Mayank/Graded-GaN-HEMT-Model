@@ -13,6 +13,9 @@
     ],
     "GVS80_hits_sweep_end": false,
     "GVS90_V": 1.495205114503122,
+    "second_hump": true,
+    "V_hump_min_V": 0.8604999999998544,
+    "GVS80_below_hump_V": 2.0263061151692394,
     "VIP3_at_peak_V": 4.813862355869065,
     "sweep_V": [
       -5.9895,
@@ -33,6 +36,9 @@
     ],
     "GVS80_hits_sweep_end": false,
     "GVS90_V": 0.9873813712322398,
+    "second_hump": true,
+    "V_hump_min_V": 0.36049999999986504,
+    "GVS80_below_hump_V": 1.443205446703626,
     "VIP3_at_peak_V": 3.9008628585427356,
     "sweep_V": [
       -5.9895,
@@ -53,6 +59,9 @@
     ],
     "GVS80_hits_sweep_end": false,
     "GVS90_V": 0.9873821346685214,
+    "second_hump": true,
+    "V_hump_min_V": 0.36499999999992827,
+    "GVS80_below_hump_V": 1.447704411223501,
     "VIP3_at_peak_V": 3.920634550846995,
     "sweep_V": [
       -2.99,

@@ -13,6 +13,8 @@ Definitions (as in fom.py, Step 13a):
   GVS80 / GVS90: V_GS range with g_m >= 80 % / 90 % of the peak; V_IP3 = sqrt(4 g_m / 3|g_m3|).
   V_th: linear extrapolation of I_D at the g_m peak; V_OFF: V_GS at I_D = 1 mA/mm (same criterion as n7);
   SS: minimum dV_GS/dlog10(I_D) for 1e-7 < I_D < 1e-3 A/mm.
+  Second hump: the graded runs show a second g_m rise near V_GS = +0.7 V (not in the measured Fig. 6(b));
+  GVS80b repeats GVS80 with g_m cut at the dip before it.
 Check g050 vs n7 (same structure and physics): max relative difference of I_D above 1 mA/mm, comparing
   log-interpolated curves; first version (19 Nov) used linear interpolation and gave 0.80 % on the real runs.
 """
@@ -73,10 +75,18 @@ def metrics(v0, i0):
     sub = (i > 1e-7) & (i < 1e-3)
     ss = float(np.min(np.diff(v[sub]) / np.diff(np.log10(i[sub]))) * 1e3) if sub.sum() > 5 else float("nan")
     w8, lo8, hi8, e8 = gvs(v, gms, 0.8); w9, lo9, hi9, e9 = gvs(v, gms, 0.9)
+    # second g_m hump (graded runs, V_GS ~ +0.7 V): first local minimum after the peak followed by a rise of
+    # more than 2 % of the peak; GVS80 is then also given with g_m cut at that minimum ("below the hump")
+    j = k + 1
+    while j < len(gms) - 1 and not (gms[j] <= gms[j - 1] and gms[j] <= gms[j + 1]):
+        j += 1
+    hump = j < len(gms) - 1 and gms[j:].max() - gms[j] > 0.02 * gms[k]
+    w8b = gvs(v[:j + 1], gms[:j + 1], 0.8)[0] if hump else w8
     vip3 = np.sqrt(4 * np.abs(gms) / (3 * np.maximum(np.abs(gm3), 1e-12)))
     return dict(gm_peak_mS_mm=float(gms[k] * 1e3), V_gm_peak_V=float(v[k]), Vth_V=float(vth), VOFF_1mA_V=voff,
                 SS_mV_dec=ss, ID_at_VGS0_A_mm=float(np.interp(0.0, v, i)),
                 GVS80_V=w8, range80_V=[lo8, hi8], GVS80_hits_sweep_end=bool(e8), GVS90_V=w9,
+                second_hump=bool(hump), V_hump_min_V=float(v[j]) if hump else None, GVS80_below_hump_V=w8b,
                 VIP3_at_peak_V=float(vip3[k])), (v, i, gms, vip3)
 
 
@@ -101,13 +111,14 @@ if __name__ == "__main__":
         print(f"CHECK g050 vs n7 over {vv[0]:+.2f} .. {vv[-1]:+.2f} V: max |dI|/I = {rel:.3f} % where I_D > 1 mA/mm"
               f" (expect < 0.5 %)")
         out["check_g050_vs_n7_maxrel_pct"] = rel
-    hdr = f"{'run':5s} {'L_G um':>6s} {'g_m,pk':>7s} {'@V':>6s} {'V_th':>6s} {'V_OFF':>6s} {'SS':>5s} {'GVS80':>6s} {'GVS90':>6s} {'V_IP3':>6s}"
+    hdr = f"{'run':5s} {'L_G um':>6s} {'g_m,pk':>7s} {'@V':>6s} {'V_th':>6s} {'V_OFF':>6s} {'SS':>5s} {'GVS80':>6s} {'GVS90':>6s} {'V_IP3':>6s} {'GVS80b':>6s} {'hump':>6s}"
     print(hdr + "\n" + "-" * len(hdr))
     for name in sorted(runs, key=lambda n: (n[0] != "g", n)):
         m = out[name]; lg = int(name[1:]) / 1000 if name[0] in "ga" and name[1:].isdigit() else float("nan")
         print(f"{name:5s} {lg:6.3f} {m['gm_peak_mS_mm']:7.1f} {m['V_gm_peak_V']:+6.2f} {m['Vth_V']:+6.2f} {m['VOFF_1mA_V']:+6.2f}"
-              f" {m['SS_mV_dec']:5.0f} {m['GVS80_V']:6.2f}{'*' if m['GVS80_hits_sweep_end'] else ' '}{m['GVS90_V']:5.2f} {m['VIP3_at_peak_V']:6.2f}")
-    print("units: g_m mS/mm, voltages V, SS mV/dec; * = GVS80 range reaches the end of the sweep (+1 V), a lower bound")
+              f" {m['SS_mV_dec']:5.0f} {m['GVS80_V']:6.2f}{'*' if m['GVS80_hits_sweep_end'] else ' '}{m['GVS90_V']:5.2f} {m['VIP3_at_peak_V']:6.2f} {m['GVS80_below_hump_V']:6.2f} {(f"{m['V_hump_min_V']:+.2f}" if m['second_hump'] else '-'):>6s}")
+    print("units: g_m mS/mm, voltages V, SS mV/dec; * = GVS80 range reaches the end of the sweep (+1 V), a lower bound;\n"
+          "GVS80b = GVS80 with g_m cut at the dip before a second g_m hump; hump = V_GS of that dip")
 
     fig, ax = plt.subplots(1, 3, figsize=(15, 4.6))
     cmap = plt.get_cmap("viridis")
